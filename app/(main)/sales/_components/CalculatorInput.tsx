@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Paper, SimpleGrid, Button, Text, Group, Stack } from '@mantine/core';
 import { IconBackspace, IconPlus } from '@tabler/icons-react';
 
@@ -12,12 +12,18 @@ interface CalculatorInputProps {
 
 export function CalculatorInput({ value = 0, onChange, onSubmit }: CalculatorInputProps) {
     const [displayValue, setDisplayValue] = useState<string>(value > 0 ? value.toString() : '');
+    const prevValueRef = useRef(value);
 
+    // 외부에서 value가 변경될 때만 동기화 (0으로 리셋될 때)
+    // 내부 입력 중에는 무시
     useEffect(() => {
-        if (value === 0 && displayValue !== '') {
+        // 외부에서 value가 변경되었고, 새 값이 0인 경우에만 리셋
+        // (이전 값이 0보다 컸다가 0이 되는 경우 = 명시적 리셋)
+        if (prevValueRef.current !== value && value === 0 && prevValueRef.current > 0) {
             setDisplayValue('');
         }
-    }, [value, displayValue]);
+        prevValueRef.current = value;
+    }, [value]);
 
     const vibrate = () => {
         if (typeof navigator !== 'undefined' && navigator.vibrate) {
