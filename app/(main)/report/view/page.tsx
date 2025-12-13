@@ -1,12 +1,12 @@
 'use client';
 
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { getMonthlyReport, MonthlyReportData } from '../actions';
 import { Title, Text, Table, Button, Group, Stack, Card, Center, Loader, Divider, ActionIcon } from '@mantine/core';
 import { IconPrinter, IconArrowLeft } from '@tabler/icons-react';
 
-export default function ReportViewPage() {
+function ReportViewContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const year = Number(searchParams.get('year'));
@@ -142,5 +142,13 @@ export default function ReportViewPage() {
                 }
             `}</style>
         </div>
+    );
+}
+
+export default function ReportViewPage() {
+    return (
+        <Suspense fallback={<Center h="100vh"><Loader color="teal" /></Center>}>
+            <ReportViewContent />
+        </Suspense>
     );
 }
