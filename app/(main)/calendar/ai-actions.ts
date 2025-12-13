@@ -1,6 +1,6 @@
 'use server';
 
-import { getSalesRange } from '../sales/_repositories/sales-repository';
+import { getSalesByDateRange } from '../sales/_repositories/sales-repository';
 import dayjs from 'dayjs';
 
 // MVP: Rule-based "AI" Analysis
