@@ -1,15 +1,17 @@
 'use client';
 
 import { Title, Text, SimpleGrid, Paper, Stack, Group, ThemeIcon, Badge, Slider, Button, Modal, NumberInput, LoadingOverlay } from '@mantine/core';
-import { IconBulb, IconTrendingUp, IconAlertTriangle, IconRocket, IconChefHat, IconCurrencyWon } from '@tabler/icons-react';
+import { IconBulb, IconTrendingUp, IconAlertTriangle, IconRocket, IconChefHat, IconCurrencyWon, IconReceipt, IconFlame, IconRefresh } from '@tabler/icons-react';
 import { useState, useEffect, useCallback } from 'react';
-import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, ReferenceLine, Label } from 'recharts';
+import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, ReferenceLine } from 'recharts';
 import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import { fetchStrategyData, saveItemCost } from './strategy-actions';
 import { useStore } from '../_contexts/store-context';
 import { EmptyState } from '../_components/EmptyState';
 import { IconChartBar } from '@tabler/icons-react';
+import { MarginAlertBanner } from './_components/MarginAlertBanner';
+import { IngredientReceiptModal } from './_components/IngredientReceiptModal';
 
 export default function StrategyPage() {
     const { currentStore } = useStore();
@@ -23,6 +25,9 @@ export default function StrategyPage() {
     // Cost Edit Modal
     const [isEditOpen, { open: openEdit, close: closeEdit }] = useDisclosure(false);
     const [editCost, setEditCost] = useState<number | ''>(0);
+
+    // Live Cost Engine Modal
+    const [isReceiptOpen, { open: openReceipt, close: closeReceipt }] = useDisclosure(false);
 
     const loadData = useCallback(async () => {
         if (!currentStore) return;
@@ -64,9 +69,11 @@ export default function StrategyPage() {
         loadData(); // Refetching for simplicity
     };
 
+    const handleReceiptComplete = () => {
+        loadData(); // 원가 업데이트 후 데이터 새로고침
+    };
+
     // --- Simulation Logic ---
-    const currentMargin = selectedItem ? selectedItem.profit / (selectedItem.quantity || 1) : 0; // Approx per item profit if profit field exists
-    // Actually selectedItem has 'totalProfit' and 'margin' from backend
     const itemProfitPerUnit = selectedItem ? selectedItem.price - selectedItem.cost : 0;
 
     const simulatedPrice = selectedItem ? selectedItem.price + priceAdjustment : 0;
@@ -93,17 +100,98 @@ export default function StrategyPage() {
     const avgQty = data.length > 0 ? data.reduce((a, b) => a + b.quantity, 0) / data.length : 0;
     const avgProfit = data.length > 0 ? data.reduce((a, b) => a + b.totalProfit, 0) / data.length : 0;
 
+    // 마진 위험 메뉴 카운트
+    const dangerMenuCount = data.filter(d => d.margin < 30 && d.cost > 0).length;
+
     return (
         <Stack gap="xl" pb={100} pos="relative">
             <LoadingOverlay visible={loading} overlayProps={{ radius: "sm", blur: 2 }} />
 
+            {/* Header */}
             <Stack gap={4}>
-                <Group>
-                    <Title order={2} c="white">메뉴 전략가 (Profit Architect)</Title>
-                    <Badge color="pink" variant="light" size="lg">BETA</Badge>
+                <Group justify="space-between" wrap="wrap">
+                    <Group>
+                        <Title order={2} c="white">메뉴 전략가 (Profit Architect)</Title>
+                        <Badge color="pink" variant="light" size="lg">BETA</Badge>
+                    </Group>
+                    <Group>
+                        <Button
+                            variant="light"
+                            color="indigo"
+                            leftSection={<IconReceipt size={16} />}
+                            onClick={openReceipt}
+                        >
+                            🔥 라이브 원가 엔진
+                        </Button>
+                        <Button
+                            variant="subtle"
+                            color="gray"
+                            leftSection={<IconRefresh size={16} />}
+                            onClick={loadData}
+                        >
+                            새로고침
+                        </Button>
+                    </Group>
                 </Group>
                 <Text c="dimmed">내 메뉴의 수익성을 분석하고(BCG) 최적의 가격을 시뮬레이션하세요.</Text>
             </Stack>
+
+            {/* Live Cost Engine Banner */}
+            <Paper
+                p="md"
+                radius="lg"
+                style={{
+                    background: 'linear-gradient(135deg, rgba(79, 70, 229, 0.15) 0%, rgba(147, 51, 234, 0.15) 100%)',
+                    border: '1px solid rgba(79, 70, 229, 0.3)'
+                }}
+            >
+                <Group justify="space-between" wrap="wrap">
+                    <Group>
+                        <ThemeIcon size="lg" radius="xl" variant="gradient" gradient={{ from: 'indigo', to: 'grape' }}>
+                            <IconFlame size={20} />
+                        </ThemeIcon>
+                        <Stack gap={0}>
+                            <Text fw={700} c="white" size="sm">🔄 라이브 원가 엔진 (Live Cost Engine)</Text>
+                            <Text size="xs" c="dimmed">
+                                영수증을 찍으면 AI가 식자재 가격을 감지하여 메뉴 원가를 실시간 업데이트합니다.
+                            </Text>
+                        </Stack>
+                    </Group>
+                    <Button
+                        variant="white"
+                        color="indigo"
+                        size="xs"
+                        leftSection={<IconReceipt size={14} />}
+                        onClick={openReceipt}
+                    >
+                        영수증 스캔
+                    </Button>
+                </Group>
+            </Paper>
+
+            {/* Margin Alert Banner */}
+            <MarginAlertBanner
+                storeId={currentStore?.id}
+                onAlertClick={(alert) => {
+                    // 알림 클릭 시 해당 메뉴 선택
+                    if (alert.menu_id) {
+                        const menu = data.find(d => d.id === alert.menu_id);
+                        if (menu) setSelectedItem(menu);
+                    }
+                }}
+            />
+
+            {/* Danger Menu Quick Stats */}
+            {dangerMenuCount > 0 && (
+                <Paper p="sm" radius="md" bg="rgba(255, 107, 107, 0.1)" style={{ border: '1px solid #fa525240' }}>
+                    <Group>
+                        <IconAlertTriangle size={20} color="#fa5252" />
+                        <Text size="sm" c="red.3">
+                            <strong>{dangerMenuCount}개</strong> 메뉴의 마진율이 30% 이하입니다. 원가 점검이 필요합니다.
+                        </Text>
+                    </Group>
+                </Paper>
+            )}
 
             <SimpleGrid cols={{ base: 1, md: 2 }} spacing="lg">
                 {/* Zone A: Menu Nebula */}
@@ -137,11 +225,16 @@ export default function StrategyPage() {
                                             content={({ active, payload }) => {
                                                 if (active && payload && payload.length) {
                                                     const d = payload[0].payload;
+                                                    const isLowMargin = d.margin < 30 && d.cost > 0;
                                                     return (
                                                         <Paper p="xs" bg="dark" withBorder>
                                                             <Text fw={700} c="white">{d.name}</Text>
                                                             <Text size="xs" c="cyan">판매량: {d.quantity}개</Text>
                                                             <Text size="xs" c="green">총이익: {d.totalProfit.toLocaleString()}원</Text>
+                                                            <Text size="xs" c={isLowMargin ? 'red' : 'gray'}>
+                                                                마진율: {d.margin.toFixed(1)}%
+                                                                {isLowMargin && ' ⚠️'}
+                                                            </Text>
                                                             {d.cost === 0 && <Text size="xs" c="red">⚠️ 원가 미입력</Text>}
                                                         </Paper>
                                                     );
@@ -192,6 +285,19 @@ export default function StrategyPage() {
                                 </Button>
                             </Group>
 
+                            {/* 마진 위험 경고 */}
+                            {selectedItem.cost > 0 && selectedItem.margin < 30 && (
+                                <Paper p="md" bg="rgba(255, 107, 107, 0.1)" radius="md" style={{ border: '1px solid #fa5252' }}>
+                                    <Group>
+                                        <IconFlame color="#fa5252" />
+                                        <Text c="red.3" size="sm">
+                                            <strong>사장님, {selectedItem.name} 마진이 위험해요!</strong><br />
+                                            현재 마진율 {selectedItem.margin.toFixed(1)}%로 목표(30%)보다 낮습니다.
+                                        </Text>
+                                    </Group>
+                                </Paper>
+                            )}
+
                             {selectedItem.cost === 0 ? (
                                 <Paper p="md" bg="rgba(255, 107, 107, 0.1)" radius="md" style={{ border: '1px solid #fa5252' }}>
                                     <Group>
@@ -215,6 +321,7 @@ export default function StrategyPage() {
                                                     {selectedItem.type === 'star' && ' 효자 상품이네요! 가격 유지를 추천합니다.'}
                                                     {selectedItem.type === 'cashcow' && ' 많이 팔리지만 마진이 적습니다. 가격을 소폭 인상해도 좋을까요?'}
                                                     {selectedItem.type === 'dog' && ' 판매량과 마진 모두 저조합니다. 레시피 개선이나 메뉴 제외를 고려해보세요.'}
+                                                    {selectedItem.type === 'gem' && ' 숨은 보석입니다! 홍보를 강화하면 매출이 오를 수 있어요.'}
                                                 </Text>
                                             </div>
                                         </Group>
@@ -289,6 +396,14 @@ export default function StrategyPage() {
                     </Group>
                 </Stack>
             </Modal>
+
+            {/* Live Cost Engine Modal */}
+            <IngredientReceiptModal
+                opened={isReceiptOpen}
+                onClose={closeReceipt}
+                storeId={currentStore?.id}
+                onComplete={handleReceiptComplete}
+            />
         </Stack>
     );
 }
