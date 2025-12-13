@@ -40,7 +40,7 @@ export default function ReportSelectPage() {
                             label="조회할 월 선택"
                             placeholder="날짜 선택"
                             value={value}
-                            onChange={(date) => setValue(date)}
+                            onChange={(date) => setValue(date ? (typeof date === 'string' ? new Date(date) : date) : null)}
                             maxDate={new Date()}
                         />
                         <Button

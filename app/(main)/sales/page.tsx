@@ -351,7 +351,7 @@ export default function SalesPage() {
                     allowDeselect={false}
                     // label="날짜 선택"
                     value={date}
-                    onChange={(val) => setDate(val as Date | null)}
+                    onChange={(val) => setDate(val ? (typeof val === 'string' ? new Date(val) : val) : null)}
                     style={{ flex: 1 }}
                     size="md"
                     radius="md"
