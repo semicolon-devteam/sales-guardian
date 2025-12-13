@@ -17,7 +17,7 @@ export function CalculatorInput({ value = 0, onChange, onSubmit }: CalculatorInp
         if (value === 0 && displayValue !== '') {
             setDisplayValue('');
         }
-    }, [value]);
+    }, [value, displayValue]);
 
     const vibrate = () => {
         if (typeof navigator !== 'undefined' && navigator.vibrate) {

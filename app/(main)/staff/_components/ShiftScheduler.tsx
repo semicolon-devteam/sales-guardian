@@ -3,7 +3,7 @@
 import { Paper, Title, Text, Button, Group, Stack, Badge, Modal, Select, TextInput, ActionIcon, Loader } from '@mantine/core';
 import { IconPlus, IconTrash, IconClock } from '@tabler/icons-react';
 import { Calendar } from '@mantine/dates';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useDisclosure } from '@mantine/hooks';
 import { useStore } from '../../_contexts/store-context';
 import { getStoreMembers } from '../../store/members/actions';
@@ -31,7 +31,7 @@ export function ShiftScheduler() {
         }
     }, [currentStore]);
 
-    const fetchSchedules = async () => {
+    const fetchSchedules = useCallback(async () => {
         if (!currentStore || !date) return;
         setLoading(true);
         // Fetch for the whole month to show dots? Or just the selected day first.
@@ -41,11 +41,11 @@ export function ShiftScheduler() {
         const data = await getSchedules(currentStore.id, start, end);
         setSchedules(data);
         setLoading(false);
-    };
+    }, [currentStore, date]);
 
     useEffect(() => {
         fetchSchedules();
-    }, [date, currentStore]);
+    }, [fetchSchedules]);
 
     const handleCreate = async () => {
         if (!currentStore || !selectedMember || !date) return;

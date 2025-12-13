@@ -34,14 +34,14 @@ export default function SalesPage() {
     useEffect(() => {
         // Initialize date on mount to avoid hydration mismatch, but ensure it sets
         if (!date) setDate(new Date());
-    }, []);
+    }, [date]);
 
     const [salesList, setSalesList] = useState<Sale[]>([]);
 
     // Sync viewScope initial state
     useEffect(() => {
         if (currentStore) setViewScope(currentStore.id);
-    }, [currentStore?.id]);
+    }, [currentStore]);
 
     // Helper to format YYYY-MM-DD (Local Time) to prevent UTC shift
     const formatDate = (d: Date) => {

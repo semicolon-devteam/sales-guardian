@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Title, Text, SimpleGrid, Group, Stack, Paper, ThemeIcon, Skeleton, ActionIcon, Box, Button, Grid, RingProgress } from '@mantine/core';
 import { IconRefresh, IconTrendingUp, IconReceipt, IconAlertCircle, IconArrowRight, IconChartPie, IconCalendarStats } from '@tabler/icons-react';
 import { getDashboardData } from './actions';
@@ -26,7 +26,7 @@ export default function DashboardPage() {
     const [financialData, setFinancialData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         if (!currentStore) return; // Wait for store context
 
         console.log('[Dashboard] Fetching data for:', currentStore.name);
@@ -43,11 +43,11 @@ export default function DashboardPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [currentStore]);
 
     useEffect(() => {
         fetchData();
-    }, [currentStore?.id]); // Refetch when store changes
+    }, [fetchData]); // Refetch when store changes
 
     // Mock Health Logic (For MVP)
     const storeHealthScore = 87; // Mock Score

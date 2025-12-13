@@ -3,7 +3,7 @@
 import { Paper, Title, Text, Button, Group, Stack, Badge, Loader, ThemeIcon } from '@mantine/core';
 import { IconClockPlay, IconClockStop, IconHistory } from '@tabler/icons-react';
 import { useStore } from '../../_contexts/store-context';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { getStoreMembers } from '../../store/members/actions';
 import { getTodayLog, clockIn, clockOut, getWorkLogs } from '../actions';
 import dayjs from 'dayjs';
@@ -15,22 +15,14 @@ export function AttendanceCard() {
     const [logs, setLogs] = useState<any[]>([]);
     const [userMemberInfo, setUserMemberInfo] = useState<any>(null);
 
-    useEffect(() => {
-        if (currentStore && user) {
-            fetchStatus();
-            fetchLogs();
-            fetchMyInfo();
-        }
-    }, [currentStore, user]);
-
-    const fetchMyInfo = async () => {
+    const fetchMyInfo = useCallback(async () => {
         if (!currentStore) return;
         const members = await getStoreMembers(currentStore.id);
         const me = members.find((m: any) => m.user_id === user?.id);
         setUserMemberInfo(me);
-    }
+    }, [currentStore, user]);
 
-    const fetchStatus = async () => {
+    const fetchStatus = useCallback(async () => {
         if (!currentStore || !user) return;
         const log = await getTodayLog(currentStore.id, user.id);
         if (log && !log.clock_out) {
@@ -40,13 +32,21 @@ export function AttendanceCard() {
             setStatus('idle');
             setCurrentLog(null);
         }
-    };
+    }, [currentStore, user]);
 
-    const fetchLogs = async () => {
+    const fetchLogs = useCallback(async () => {
         if (!currentStore) return;
         const data = await getWorkLogs(currentStore.id);
         setLogs(data);
-    };
+    }, [currentStore]);
+
+    useEffect(() => {
+        if (currentStore && user) {
+            fetchStatus();
+            fetchLogs();
+            fetchMyInfo();
+        }
+    }, [currentStore, user, fetchStatus, fetchLogs, fetchMyInfo]);
 
     const handleClockIn = async () => {
         if (!currentStore || !user || !userMemberInfo) {

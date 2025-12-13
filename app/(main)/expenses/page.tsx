@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Title, Text, Group, Stack, Badge, ActionIcon, Loader, Center, Affix, Button, Transition, Paper, Select, Avatar, ThemeIcon, Box } from '@mantine/core';
 import { IconReceipt, IconCamera, IconBuildingStore, IconCreditCard } from '@tabler/icons-react';
 import { useRouter } from 'next/navigation';
@@ -29,10 +29,10 @@ export default function ExpensesPage() {
     // Sync viewScope initial state
     useEffect(() => {
         if (currentStore) setViewScope(currentStore.id);
-    }, [currentStore?.id]);
+    }, [currentStore]);
 
     // Fetch Expenses
-    const fetchExpenses = async () => {
+    const fetchExpenses = useCallback(async () => {
         setLoading(true);
         try {
             const data = await getExpenseList(viewScope);
@@ -42,11 +42,11 @@ export default function ExpensesPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [viewScope]);
 
     useEffect(() => {
         fetchExpenses();
-    }, [viewScope]);
+    }, [fetchExpenses]);
 
     // Calculate Total
     const totalAmount = expenses.reduce((sum, item) => sum + item.amount, 0);
