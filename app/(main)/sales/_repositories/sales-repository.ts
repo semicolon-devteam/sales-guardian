@@ -80,6 +80,9 @@ export async function getSalesByDateRange(startDate: string, endDate: string, st
     return data || [];
 }
 
+// Alias for backward compatibility
+export const getSalesRange = getSalesByDateRange;
+
 export async function getRecentActivity(storeId?: string) {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
