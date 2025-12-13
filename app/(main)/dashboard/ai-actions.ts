@@ -2,10 +2,50 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@/app/_shared/utils/supabase/server';
+import { getDashboardData } from './actions';
 
 const anthropic = new Anthropic({
     apiKey: process.env.ANTHROPIC_API_KEY,
 });
+
+// =============================================================================
+// 매출/지출 데이터 조회 (AI 컨텍스트용)
+// =============================================================================
+
+export interface SalesContext {
+    todaySales: number;
+    todayExpenses: number;
+    netIncome: number;
+    marginPercent: number;
+    salesBreakdown: Record<string, number>;
+    weeklyTrend: { date: string; amount: number; sales: number; expenses: number }[];
+}
+
+export async function fetchSalesContext(storeId?: string): Promise<SalesContext> {
+    try {
+        const dashboardData = await getDashboardData(storeId || 'default');
+        return {
+            todaySales: dashboardData.sales || 0,
+            todayExpenses: dashboardData.variableCost || 0,
+            netIncome: dashboardData.netIncome || 0,
+            marginPercent: dashboardData.sales > 0
+                ? ((dashboardData.netIncome / dashboardData.sales) * 100)
+                : 0,
+            salesBreakdown: dashboardData.breakdown || {},
+            weeklyTrend: dashboardData.weeklyTrend || []
+        };
+    } catch (error) {
+        console.error('fetchSalesContext error:', error);
+        return {
+            todaySales: 0,
+            todayExpenses: 0,
+            netIncome: 0,
+            marginPercent: 0,
+            salesBreakdown: {},
+            weeklyTrend: []
+        };
+    }
+}
 
 // =============================================================================
 // Live Cost 데이터 조회 (AI 컨텍스트용)
@@ -236,16 +276,36 @@ export async function askAiAssistant(message: string, contextData: any) {
     }
 
     try {
-        // Live Cost 컨텍스트 조회
+        // 컨텍스트 조회
         const storeId = contextData?.storeId;
-        const liveCostContext = await fetchLiveCostContext(storeId);
+        const [liveCostContext, salesContext] = await Promise.all([
+            fetchLiveCostContext(storeId),
+            fetchSalesContext(storeId)
+        ]);
 
         // 데이터 유무 체크
         const hasMenuData = liveCostContext.menuCostSummary.totalMenus > 0;
         const hasDangerMenus = liveCostContext.dangerMenus.length > 0;
         const hasPriceChanges = liveCostContext.recentPriceChanges.length > 0;
         const hasAlerts = liveCostContext.unreadAlerts.length > 0;
-        const hasAnyData = hasMenuData || hasPriceChanges || hasAlerts;
+        const hasSalesData = salesContext.todaySales > 0;
+        const hasWeeklyTrend = salesContext.weeklyTrend.length > 0;
+        const hasAnyData = hasMenuData || hasPriceChanges || hasAlerts || hasSalesData;
+
+        // 매출 breakdown 포맷팅
+        const breakdownText = Object.entries(salesContext.salesBreakdown)
+            .map(([type, amount]) => {
+                const typeNames: Record<string, string> = {
+                    hall: '홀', baemin: '배민', coupang: '쿠팡', yogiyo: '요기요', manual: '직접입력', excel: '엑셀'
+                };
+                return `${typeNames[type] || type}: ${Number(amount).toLocaleString()}원`;
+            }).join(', ');
+
+        // 주간 트렌드 요약
+        const weeklyTotal = salesContext.weeklyTrend.reduce((sum, d) => sum + d.sales, 0);
+        const weeklyAvg = salesContext.weeklyTrend.length > 0
+            ? Math.round(weeklyTotal / salesContext.weeklyTrend.length)
+            : 0;
 
         // 강화된 시스템 프롬프트
         const systemPrompt = `
@@ -253,39 +313,44 @@ You are "세일즈키퍼 AI", a smart and friendly restaurant financial manager 
 Your mission is to help store owners optimize profitability using real-time data.
 
 ## CRITICAL RULES - YOU MUST FOLLOW:
-1. **NEVER make up or hallucinate data**. Only mention specific menu names, numbers, or percentages if they are explicitly provided below.
+1. **NEVER make up or hallucinate data**. Only mention specific numbers if they are explicitly provided below.
 2. If no data is available, honestly say "아직 등록된 데이터가 없습니다" or guide the user to input data first.
 3. Do NOT invent menu names, ingredient names, or percentages that are not in the data below.
 
-## Data Availability Status:
-- 메뉴 데이터 존재: ${hasMenuData ? '예' : '아니오 (메뉴를 먼저 등록해주세요)'}
-- 마진 위험 메뉴: ${hasDangerMenus ? `${liveCostContext.dangerMenus.length}개` : '없음'}
-- 가격 변동 기록: ${hasPriceChanges ? `${liveCostContext.recentPriceChanges.length}건` : '없음'}
-- 미확인 알림: ${hasAlerts ? `${liveCostContext.unreadAlerts.length}건` : '없음'}
+## 오늘의 매출 데이터 (실시간):
+${hasSalesData ? `
+- 오늘 총 매출: ${salesContext.todaySales.toLocaleString()}원
+- 오늘 지출: ${salesContext.todayExpenses.toLocaleString()}원
+- 순수익: ${salesContext.netIncome.toLocaleString()}원
+- 마진율: ${salesContext.marginPercent.toFixed(1)}%
+${breakdownText ? `- 매출 구성: ${breakdownText}` : ''}
+` : '- 오늘 매출 데이터: 아직 입력 없음'}
 
-${hasAnyData ? `## Actual Store Data (USE ONLY THIS DATA):
-${hasMenuData ? `- 등록된 메뉴: ${liveCostContext.menuCostSummary.totalMenus}개
-- 평균 마진율: ${liveCostContext.menuCostSummary.avgMargin.toFixed(1)}%
+## 주간 트렌드:
+${hasWeeklyTrend ? `
+- 최근 7일 총 매출: ${weeklyTotal.toLocaleString()}원
+- 일 평균 매출: ${weeklyAvg.toLocaleString()}원
+- 일별 추이: ${salesContext.weeklyTrend.map(d => `${d.date}:${d.sales > 0 ? d.sales.toLocaleString() : '0'}원`).join(' → ')}
+` : '- 주간 데이터: 아직 충분한 데이터 없음'}
+
+## 메뉴/원가 데이터:
+- 등록된 메뉴: ${hasMenuData ? `${liveCostContext.menuCostSummary.totalMenus}개` : '없음 (메뉴 전략가에서 등록 필요)'}
+${hasMenuData ? `- 평균 마진율: ${liveCostContext.menuCostSummary.avgMargin.toFixed(1)}%
 - 마진 30% 미만 메뉴: ${liveCostContext.menuCostSummary.lowMarginCount}개` : ''}
 ${hasDangerMenus ? `
-### 마진 위험 메뉴 (실제 데이터):
-${liveCostContext.dangerMenus.map(m => `  • ${m.name}: 마진 ${m.margin.toFixed(1)}%, 원가 ${m.cost.toLocaleString()}원, 판매가 ${m.price.toLocaleString()}원`).join('\n')}` : ''}
+### 마진 위험 메뉴:
+${liveCostContext.dangerMenus.map(m => `  • ${m.name}: 마진 ${m.margin.toFixed(1)}%, 원가 ${m.cost.toLocaleString()}원`).join('\n')}` : ''}
 ${hasPriceChanges ? `
-### 최근 가격 변동 (실제 데이터):
-${liveCostContext.recentPriceChanges.map(p => `  • ${p.ingredient}: ${p.oldPrice.toLocaleString()}원 → ${p.newPrice.toLocaleString()}원 (${p.changePercent > 0 ? '+' : ''}${p.changePercent.toFixed(1)}%)`).join('\n')}` : ''}
+### 최근 가격 변동:
+${liveCostContext.recentPriceChanges.map(p => `  • ${p.ingredient}: ${p.changePercent > 0 ? '+' : ''}${p.changePercent.toFixed(1)}%`).join('\n')}` : ''}
 ${hasAlerts ? `
 ### 미확인 알림:
 ${liveCostContext.unreadAlerts.map(a => `  • [${a.severity}] ${a.message}`).join('\n')}` : ''}
-` : `## NO DATA AVAILABLE
-사용자가 아직 메뉴나 식자재를 등록하지 않았습니다.
-- 메뉴 전략가에서 메뉴와 원가를 입력하도록 안내하세요.
-- 구체적인 숫자나 메뉴명을 언급하지 마세요.
-`}
 
 ## Response Guidelines:
 1. **Language**: Always Korean, friendly tone ("사장님, ~입니다", "~해보시는 건 어떨까요?")
 2. **Data-First**: ONLY cite numbers that exist in the data above. If data doesn't exist, say so.
-3. **Actionable**: Provide concrete advice only when you have actual data to base it on.
+3. **Actionable**: Provide concrete advice when you have actual data.
 4. **Concise**: 3-5 sentences max unless detailed report requested.
 5. **Honest**: If you don't have data to answer, admit it and guide the user to input data.
 6. **Emoji**: Use relevant emojis sparingly.
