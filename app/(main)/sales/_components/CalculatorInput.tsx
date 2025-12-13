@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Paper, SimpleGrid, Button, Text, Group, Stack, UnstyledButton } from '@mantine/core';
-import { IconBackspace, IconCheck, IconPlus, IconX } from '@tabler/icons-react';
+import { Paper, SimpleGrid, Button, Text, Group, Stack } from '@mantine/core';
+import { IconBackspace, IconPlus } from '@tabler/icons-react';
 
 interface CalculatorInputProps {
     value?: number;
@@ -89,42 +89,38 @@ export function CalculatorInput({ value = 0, onChange, onSubmit }: CalculatorInp
     };
     const provisional = getProvisionalTotal();
 
-    // Keypad Button Component
+    // Keypad Button Component - using Button instead of UnstyledButton for better touch support
     const KeyBtn = ({
         label,
         onClick,
-        color = 'dark',
-        bg = 'transparent',
+        variant = 'subtle',
+        color = 'gray',
         icon
     }: {
         label?: string,
         onClick: () => void,
+        variant?: 'subtle' | 'light' | 'filled',
         color?: string,
-        bg?: string,
         icon?: React.ReactNode
     }) => (
-        <UnstyledButton
+        <Button
+            variant={variant}
+            color={color}
             onClick={onClick}
-            style={{
-                height: 60,
-                borderRadius: 16,
-                backgroundColor: bg === 'transparent' ? 'transparent' : `var(--mantine-color-${bg})`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '1.5rem',
-                fontWeight: 600,
-                color: color === 'dark' ? 'white' : `var(--mantine-color-${color}-4)`, // Use light shade for colors in dark mode? Or just white.
-                transition: 'transform 0.1s',
+            h={60}
+            radius="md"
+            styles={{
+                root: {
+                    fontSize: '1.5rem',
+                    fontWeight: 600,
+                },
+                label: {
+                    color: color === 'gray' ? 'white' : undefined
+                }
             }}
-            onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.95)'}
-            onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
-            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-            onTouchStart={(e) => e.currentTarget.style.transform = 'scale(0.95)'}
-            onTouchEnd={(e) => e.currentTarget.style.transform = 'scale(1)'}
         >
-            {icon ? icon : label}
-        </UnstyledButton>
+            {icon || label}
+        </Button>
     );
 
     return (
@@ -173,22 +169,21 @@ export function CalculatorInput({ value = 0, onChange, onSubmit }: CalculatorInp
             </Group>
 
             {/* Keypad Grid */}
-            <Paper radius="xl" p="sm">
+            <Paper radius="xl" p="sm" bg="#1F2937">
                 <SimpleGrid cols={4} spacing="xs" verticalSpacing="xs">
                     <KeyBtn label="7" onClick={() => handleInput('7')} />
                     <KeyBtn label="8" onClick={() => handleInput('8')} />
                     <KeyBtn label="9" onClick={() => handleInput('9')} />
-                    <KeyBtn icon={<IconBackspace size={24} />} onClick={handleBackspace} color="gray" />
+                    <KeyBtn icon={<IconBackspace size={24} />} onClick={handleBackspace} />
 
                     <KeyBtn label="4" onClick={() => handleInput('4')} />
                     <KeyBtn label="5" onClick={() => handleInput('5')} />
                     <KeyBtn label="6" onClick={() => handleInput('6')} />
-                    <KeyBtn icon={<IconPlus size={24} />} onClick={handleOperator} color="blue" bg="blue.1" />
+                    <KeyBtn icon={<IconPlus size={24} />} onClick={handleOperator} variant="light" color="blue" />
 
                     <KeyBtn label="1" onClick={() => handleInput('1')} />
                     <KeyBtn label="2" onClick={() => handleInput('2')} />
                     <KeyBtn label="3" onClick={() => handleInput('3')} />
-                    {/* Enter Button (Spans 2 rows visually or sits nice) -> Let's keep it simple grid */}
                     <KeyBtn label="00" onClick={() => handleInput('00')} />
 
                     <KeyBtn label="0" onClick={() => handleInput('0')} />
@@ -197,14 +192,14 @@ export function CalculatorInput({ value = 0, onChange, onSubmit }: CalculatorInp
                             fullWidth
                             h={60}
                             radius="lg"
-                            color="profit"
+                            color="teal"
                             size="lg"
                             onClick={handleCalculate}
                         >
                             매출 입력 완료
                         </Button>
                     </div>
-                    <div /> {/* Grid filler if needed, but span 2 covers it */}
+                    <div />
                 </SimpleGrid>
             </Paper>
         </Stack>

@@ -33,9 +33,9 @@ export async function fetchLiveCostContext(storeId?: string): Promise<LiveCostCo
     try {
         // 1. 마진 위험 메뉴 조회
         let menuQuery = supabase
-            .from('lc_menu_items')
-            .select('name, selling_price, calculated_cost')
-            .gt('calculated_cost', 0);
+            .from('menu_items')
+            .select('name, selling_price, current_cost')
+            .gt('current_cost', 0);
 
         if (storeId) menuQuery = menuQuery.eq('store_id', storeId);
 
@@ -45,8 +45,8 @@ export async function fetchLiveCostContext(storeId?: string): Promise<LiveCostCo
             const menuData = menus.map(m => ({
                 name: m.name,
                 price: m.selling_price,
-                cost: m.calculated_cost || 0,
-                margin: m.selling_price > 0 ? ((m.selling_price - (m.calculated_cost || 0)) / m.selling_price) * 100 : 0
+                cost: m.current_cost || 0,
+                margin: m.selling_price > 0 ? ((m.selling_price - (m.current_cost || 0)) / m.selling_price) * 100 : 0
             }));
 
             context.dangerMenus = menuData.filter(m => m.margin < 30).slice(0, 5);
@@ -59,25 +59,47 @@ export async function fetchLiveCostContext(storeId?: string): Promise<LiveCostCo
 
         // 2. 최근 가격 변동 (가격 이력에서)
         let priceHistoryQuery = supabase
-            .from('lc_ingredient_price_history')
-            .select('lc_ingredients(name), old_price, new_price, created_at')
-            .order('created_at', { ascending: false })
-            .limit(5);
+            .from('ingredient_price_history')
+            .select('ingredient_id, price, price_per_unit, recorded_at, ingredients(name)')
+            .order('recorded_at', { ascending: false })
+            .limit(10);
 
         const { data: priceHistory } = await priceHistoryQuery;
 
-        if (priceHistory) {
-            context.recentPriceChanges = priceHistory.map((h: any) => ({
-                ingredient: h.lc_ingredients?.name || '알수없음',
-                oldPrice: h.old_price,
-                newPrice: h.new_price,
-                changePercent: h.old_price > 0 ? ((h.new_price - h.old_price) / h.old_price) * 100 : 0
-            }));
+        if (priceHistory && priceHistory.length > 1) {
+            // Group by ingredient and compare prices
+            const priceChanges: typeof context.recentPriceChanges = [];
+            const seen = new Set<string>();
+
+            for (const h of priceHistory as any[]) {
+                const ingredientName = h.ingredients?.name;
+                if (!ingredientName || seen.has(ingredientName)) continue;
+                seen.add(ingredientName);
+
+                // Find previous price for same ingredient
+                const prevRecord = priceHistory.find((p: any) =>
+                    p.ingredients?.name === ingredientName && p.recorded_at !== h.recorded_at
+                );
+
+                if (prevRecord) {
+                    const oldPrice = (prevRecord as any).price || 0;
+                    const newPrice = h.price || 0;
+                    if (oldPrice > 0 && newPrice !== oldPrice) {
+                        priceChanges.push({
+                            ingredient: ingredientName,
+                            oldPrice,
+                            newPrice,
+                            changePercent: ((newPrice - oldPrice) / oldPrice) * 100
+                        });
+                    }
+                }
+            }
+            context.recentPriceChanges = priceChanges.slice(0, 5);
         }
 
         // 3. 고가 식자재 TOP 5
         let ingredientQuery = supabase
-            .from('lc_ingredients')
+            .from('ingredients')
             .select('name, last_price, unit')
             .order('last_price', { ascending: false })
             .limit(5);
@@ -96,7 +118,7 @@ export async function fetchLiveCostContext(storeId?: string): Promise<LiveCostCo
 
         // 4. 읽지 않은 알림
         let alertQuery = supabase
-            .from('lc_margin_alerts')
+            .from('margin_alerts')
             .select('message, severity')
             .eq('is_read', false)
             .order('created_at', { ascending: false })
