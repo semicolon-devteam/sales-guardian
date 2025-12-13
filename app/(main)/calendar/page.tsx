@@ -295,7 +295,6 @@ export default function CalendarPage() {
                     styles={{
                         calendarHeader: { color: 'white', maxWidth: '100%' },
                         day: { height: 56, borderRadius: 8, fontSize: 14, color: 'white' },
-                        cell: { padding: 2 },
                         calendarHeaderLevel: { color: 'white', fontWeight: 700 },
                         calendarHeaderControl: { color: 'gray' }
                     }}
