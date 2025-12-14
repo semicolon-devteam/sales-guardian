@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import {
     Title, Text, Stack, Paper, Group, ThemeIcon, Badge, Button,
     SimpleGrid, ScrollArea, TextInput, Skeleton, Center, Loader, Box, Divider
@@ -25,6 +25,14 @@ import {
 import { TabNavigation, TAB_GROUPS } from '../_components/TabNavigation';
 
 export default function MarketingPage() {
+    return (
+        <Suspense fallback={<Center h="50vh"><Loader color="teal" /></Center>}>
+            <MarketingPageContent />
+        </Suspense>
+    );
+}
+
+function MarketingPageContent() {
     const { currentStore } = useStore();
     const searchParams = useSearchParams();
 
