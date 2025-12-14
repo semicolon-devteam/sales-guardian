@@ -338,25 +338,25 @@ export default function CalendarPage() {
                 </Group>
 
                 {/* Monthly Summary Card - 반응형 개선 */}
-                <Paper p={{ base: 'sm', sm: 'md' }} radius="lg" bg="#111C44" style={{ border: '1px solid #2C2E33' }}>
-                    <Group grow gap={{ base: 'xs', sm: 'md' }} wrap="nowrap">
+                <Paper p="sm" radius="lg" bg="#111C44" style={{ border: '1px solid #2C2E33' }}>
+                    <Group grow gap="xs" wrap="nowrap">
                         <Stack gap={2} align="center">
                             <Text size="xs" c="gray.5">총 매출</Text>
-                            <Text fw={700} c="white" size={{ base: 'sm', sm: 'md' }} style={{ fontVariantNumeric: 'tabular-nums' }}>
+                            <Text fw={700} c="white" size="sm" style={{ fontVariantNumeric: 'tabular-nums' }}>
                                 {(monthlyTotalSales / 10000).toFixed(0)}만
                             </Text>
                         </Stack>
                         <Divider orientation="vertical" color="gray.7" />
                         <Stack gap={2} align="center">
                             <Text size="xs" c="gray.5">순수익</Text>
-                            <Text fw={800} c={monthlyProfit >= 0 ? 'teal.4' : 'red.4'} size={{ base: 'sm', sm: 'lg' }} style={{ fontVariantNumeric: 'tabular-nums' }}>
+                            <Text fw={800} c={monthlyProfit >= 0 ? 'teal.4' : 'red.4'} size="sm" style={{ fontVariantNumeric: 'tabular-nums' }}>
                                 {monthlyProfit >= 0 ? '+' : ''}{(monthlyProfit / 10000).toFixed(0)}만
                             </Text>
                         </Stack>
                         <Divider orientation="vertical" color="gray.7" />
                         <Stack gap={2} align="center">
                             <Text size="xs" c="gray.5">마진율</Text>
-                            <Text fw={700} c="blue.4" size={{ base: 'sm', sm: 'md' }}>
+                            <Text fw={700} c="blue.4" size="sm">
                                 {monthlyTotalSales > 0 ? Math.round((monthlyProfit / monthlyTotalSales) * 100) : 0}%
                             </Text>
                         </Stack>
@@ -365,7 +365,7 @@ export default function CalendarPage() {
             </Stack>
 
             {/* Calendar Card */}
-            <Paper radius="xl" p={{ base: 'xs', sm: 'md' }} shadow="sm" bg="#1F2937" style={{ border: '1px solid #374151' }}>
+            <Paper radius="xl" p="sm" shadow="sm" bg="#1F2937" style={{ border: '1px solid #374151' }}>
                 <Calendar
                     key={fixedCosts.map(c => c.id).join('-')} // Force re-render when costs change
                     static
@@ -375,10 +375,6 @@ export default function CalendarPage() {
                     getDayProps={getDayProps}
                     renderDay={renderDay}
                     styles={{
-                        calendar: {
-                            width: '100%',
-                            maxWidth: '100%'
-                        },
                         calendarHeader: {
                             color: 'white',
                             maxWidth: '100%',
@@ -401,7 +397,6 @@ export default function CalendarPage() {
                         day: {
                             height: 'auto',
                             minHeight: 52,
-                            aspectRatio: '1',
                             borderRadius: 10,
                             fontSize: 14,
                             color: 'white',
@@ -421,7 +416,7 @@ export default function CalendarPage() {
                     locale="ko"
                 />
                 {/* 범례 */}
-                <Group justify="center" gap={{ base: 'xs', sm: 'md' }} mt="sm" pb="xs" wrap="wrap">
+                <Group justify="center" gap="xs" mt="sm" pb="xs" wrap="wrap">
                     <Group gap={4}>
                         <Box w={8} h={8} style={{ borderRadius: '50%', backgroundColor: '#10B981' }} />
                         <Text size="xs" c="dimmed">정산일</Text>

@@ -55,7 +55,7 @@ export async function fetchMarketingTriggers(storeId?: string): Promise<{ succes
                 const starMenus = strategyResult.data.filter((m: any) => m.type === 'star' && m.margin >= 50);
                 for (const menu of starMenus.slice(0, 2)) {
                     triggers.push({
-                        id: `star-${menu.id || menu.name}`,
+                        id: `star-${menu.name}`,
                         type: 'menu',
                         label: `${menu.name} (마진 ${Math.round(menu.margin)}%)`,
                         description: '효자 메뉴 - 적극 홍보 추천',
@@ -70,7 +70,7 @@ export async function fetchMarketingTriggers(storeId?: string): Promise<{ succes
                 const gemMenus = strategyResult.data.filter((m: any) => m.type === 'gem' && m.margin >= 40);
                 for (const menu of gemMenus.slice(0, 2)) {
                     triggers.push({
-                        id: `gem-${menu.id || menu.name}`,
+                        id: `gem-${menu.name}`,
                         type: 'menu',
                         label: `${menu.name} (숨은 보석)`,
                         description: '마진 좋지만 판매 부족 - 홍보 필요',
