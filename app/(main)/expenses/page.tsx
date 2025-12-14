@@ -14,6 +14,7 @@ import 'dayjs/locale/ko';
 import { ExpenseAnalytics } from './_components/ExpenseAnalytics';
 import { ManualExpenseModal } from './_components/ManualExpenseModal';
 import { EmptyState } from '../_components/EmptyState';
+import { TabNavigation, TAB_GROUPS } from '../_components/TabNavigation';
 
 export default function ExpensesPage() {
     const router = useRouter();
@@ -92,6 +93,9 @@ export default function ExpensesPage() {
 
     return (
         <Stack gap="xl" pb={120}>
+            {/* Tab Navigation */}
+            <TabNavigation tabs={TAB_GROUPS.transaction} />
+
             {/* Header with Selector */}
             <Group justify="space-between" align="center">
                 <Stack gap={0} style={{ flex: 1 }}>

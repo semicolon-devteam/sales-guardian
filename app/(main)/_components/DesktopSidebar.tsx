@@ -5,14 +5,13 @@ import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
     IconChartPie,
-    IconPlus,
-    IconReceipt,
+    IconCash,
+    IconTargetArrow,
     IconCalendarStats,
-    IconMessageCircle,
     IconBuildingStore,
-    IconLogout,
     IconUsers,
-    IconBulb
+    IconMessageCircle,
+    IconReceipt
 } from '@tabler/icons-react';
 import { useStore } from '../_contexts/store-context';
 
@@ -21,24 +20,25 @@ export function DesktopSidebar() {
     const { role, myStores, currentStore, setCurrentStore } = useStore();
     const router = useRouter();
 
+    // 메뉴 활성화 체크 (그룹 내 어떤 경로든 활성화)
+    const isActive = (hrefs: string[]) => hrefs.some(h => pathname === h);
+
     // Define menus based on role
     const getMenuItems = () => {
         if (role === 'staff') {
             return [
-                { icon: IconMessageCircle, label: '타임라인', href: '/timeline' },
-                { icon: IconReceipt, label: '지출관리', href: '/expenses' },
+                { icon: IconMessageCircle, label: '타임라인', href: '/timeline', hrefs: ['/timeline'] },
+                { icon: IconReceipt, label: '지출관리', href: '/expenses', hrefs: ['/expenses'] },
             ];
         }
 
-        // Owner / Manager
+        // Owner / Manager - 5개로 통합
         return [
-            { icon: IconChartPie, label: '대시보드', href: '/dashboard' },
-            { icon: IconPlus, label: '매출입력', href: '/sales' },
-            { icon: IconReceipt, label: '지출관리', href: '/expenses' },
-            { icon: IconBulb, label: '수익설계사', href: '/strategy' },
-            { icon: IconCalendarStats, label: '캘린더', href: '/calendar' },
-            { icon: IconMessageCircle, label: '타임라인', href: '/timeline' },
-            { icon: IconUsers, label: '직원관리', href: '/staff' },
+            { icon: IconChartPie, label: '대시보드', href: '/dashboard', hrefs: ['/dashboard'] },
+            { icon: IconCash, label: '매출/지출', href: '/sales', hrefs: ['/sales', '/expenses'] },
+            { icon: IconTargetArrow, label: '전략실', href: '/strategy', hrefs: ['/strategy', '/marketing'] },
+            { icon: IconCalendarStats, label: '일정', href: '/calendar', hrefs: ['/calendar', '/timeline'] },
+            { icon: IconUsers, label: '직원관리', href: '/staff', hrefs: ['/staff'] },
         ];
     };
 
@@ -98,8 +98,10 @@ export function DesktopSidebar() {
                     {items.map((item) => (
                         <SidebarLink
                             key={item.href}
-                            {...item}
-                            active={pathname === item.href}
+                            icon={item.icon}
+                            label={item.label}
+                            href={item.href}
+                            active={isActive(item.hrefs)}
                         />
                     ))}
                 </Stack>

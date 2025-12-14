@@ -19,6 +19,7 @@ import { IconReceipt, IconHistory } from '@tabler/icons-react';
 import '@mantine/dates/styles.css';
 
 import { useRouter } from 'next/navigation';
+import { TabNavigation, TAB_GROUPS } from '../_components/TabNavigation';
 
 export default function SalesPage() {
     const router = useRouter();
@@ -191,6 +192,9 @@ export default function SalesPage() {
 
     return (
         <Stack gap="lg" pb={100}>
+            {/* Tab Navigation */}
+            <TabNavigation tabs={TAB_GROUPS.transaction} />
+
             {/* Header & Store Switcher */}
             <Group justify="space-between" align="center">
                 <Box style={{ flex: 1, maxWidth: 300 }}>

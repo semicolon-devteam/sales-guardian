@@ -5,11 +5,12 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import {
     IconChartPie,
-    IconPlus,
-    IconReceipt,
+    IconCash,
+    IconTargetArrow,
     IconCalendarStats,
+    IconUsers,
     IconMessageCircle,
-    IconUsers
+    IconReceipt
 } from '@tabler/icons-react';
 import { useStore } from '../_contexts/store-context';
 
@@ -17,24 +18,25 @@ export function MobileBottomNav() {
     const pathname = usePathname();
     const { role } = useStore();
 
+    // 메뉴 활성화 체크 (그룹 내 어떤 경로든 활성화)
+    const isActive = (hrefs: string[]) => hrefs.some(h => pathname === h);
+
     // Define menus based on role
     const getMenuItems = () => {
         if (role === 'staff') {
             return [
-                { icon: IconMessageCircle, label: '타임라인', href: '/timeline' },
-                { icon: IconReceipt, label: '지출관리', href: '/expenses' }, // Staff uploads receipts here
-                // { icon: IconUser, label: '내 정보', href: '/profile' } // TODO: Profile Page
+                { icon: IconMessageCircle, label: '타임라인', href: '/timeline', hrefs: ['/timeline'] },
+                { icon: IconReceipt, label: '지출관리', href: '/expenses', hrefs: ['/expenses'] },
             ];
         }
 
-        // Owner / Manager
+        // Owner / Manager - 5개로 통합
         return [
-            { icon: IconChartPie, label: '대시보드', href: '/dashboard' },
-            { icon: IconPlus, label: '매출입력', href: '/sales' },
-            { icon: IconReceipt, label: '지출관리', href: '/expenses' },
-            { icon: IconCalendarStats, label: '캘린더', href: '/calendar' },
-            { icon: IconMessageCircle, label: '타임라인', href: '/timeline' },
-            { icon: IconUsers, label: '직원관리', href: '/staff' },
+            { icon: IconChartPie, label: '대시보드', href: '/dashboard', hrefs: ['/dashboard'] },
+            { icon: IconCash, label: '매출/지출', href: '/sales', hrefs: ['/sales', '/expenses'] },
+            { icon: IconTargetArrow, label: '전략실', href: '/strategy', hrefs: ['/strategy', '/marketing'] },
+            { icon: IconCalendarStats, label: '일정', href: '/calendar', hrefs: ['/calendar', '/timeline'] },
+            { icon: IconUsers, label: '직원', href: '/staff', hrefs: ['/staff'] },
         ];
     };
 
@@ -64,7 +66,7 @@ export function MobileBottomNav() {
                             icon={<item.icon size={24} stroke={1.5} />}
                             label={item.label}
                             href={item.href}
-                            active={pathname === item.href}
+                            active={isActive(item.hrefs)}
                         />
                     ))}
                 </Group>

@@ -12,6 +12,7 @@ import { AIDailyBriefing } from './_components/AIDailyBriefing';
 import { TimelineSummaryCard } from './_components/TimelineSummaryCard';
 import { TimelineItem } from './_components/TimelineItem';
 import { FixedCostModal } from './_components/FixedCostModal';
+import { TabNavigation, TAB_GROUPS } from '../_components/TabNavigation';
 
 export default function CalendarPage() {
     const { currentStore, myStores } = useStore();
@@ -134,32 +135,47 @@ export default function CalendarPage() {
         const settlements = getSettlementInfo(dayDate);
         const hasSettlement = settlements.length > 0;
 
+        // 손익 계산
+        const profit = dayData ? dayData.sales - dayData.expense : 0;
+        const profitInMan = Math.round(profit / 10000);
+
         return (
             <div
                 style={{
                     width: '100%',
                     height: '100%',
+                    minHeight: 48,
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
                     background: status?.bg || 'transparent',
                     border: status?.border || 'none',
-                    borderRadius: 8,
-                    position: 'relative'
+                    borderRadius: 10,
+                    position: 'relative',
+                    padding: '4px 2px',
+                    gap: 2
                 }}
             >
-                <Text size="sm" c={status?.c || 'gray.4'}>{dayNum}</Text>
+                {/* 날짜 숫자 */}
+                <Text
+                    size="sm"
+                    fw={600}
+                    c={status?.c || 'gray.4'}
+                    style={{ lineHeight: 1 }}
+                >
+                    {dayNum}
+                </Text>
 
                 {/* Fixed Cost Indicator (빨간 점) */}
                 {hasFixedCost && (
                     <Box
                         style={{
                             position: 'absolute',
-                            top: 4,
-                            right: 4,
-                            width: 6,
-                            height: 6,
+                            top: 3,
+                            right: 3,
+                            width: 5,
+                            height: 5,
                             borderRadius: '50%',
                             backgroundColor: '#EF4444',
                             zIndex: 10
@@ -172,10 +188,10 @@ export default function CalendarPage() {
                     <Box
                         style={{
                             position: 'absolute',
-                            top: 4,
-                            left: 4,
-                            width: 6,
-                            height: 6,
+                            top: 3,
+                            left: 3,
+                            width: 5,
+                            height: 5,
                             borderRadius: '50%',
                             backgroundColor: '#10B981',
                             zIndex: 10
@@ -183,11 +199,20 @@ export default function CalendarPage() {
                     />
                 )}
 
-                {/* Desktop: Show Amount */}
-                <Box visibleFrom="xs" style={{ fontSize: '10px', color: status?.c }}>
-                    {dayData && (dayData.sales - dayData.expense > 0 ? '+' : '')}
-                    {dayData && Math.round((dayData.sales - dayData.expense) / 10000) + '만'}
-                </Box>
+                {/* 금액 표시 - 데이터가 있을 때만 */}
+                {dayData && (dayData.sales > 0 || dayData.expense > 0) && (
+                    <Text
+                        size="10px"
+                        fw={700}
+                        c={profit >= 0 ? 'teal.4' : 'red.4'}
+                        style={{
+                            lineHeight: 1,
+                            whiteSpace: 'nowrap'
+                        }}
+                    >
+                        {profit >= 0 ? '+' : ''}{profitInMan}만
+                    </Text>
+                )}
             </div>
         );
     };
@@ -239,87 +264,99 @@ export default function CalendarPage() {
 
     return (
         <Stack gap="lg" pb={100}>
-            {/* Header with Selector & Monthly Summary */}
-            <Stack gap="xs">
-                <Group justify="space-between" align="center">
-                    <Select
-                        variant="unstyled"
-                        size="md"
-                        styles={{
-                            input: { fontSize: 22, fontWeight: 800, color: 'white' },
-                            dropdown: { color: 'black' }
-                        }}
-                        value={viewScope}
-                        onChange={(val) => val && setViewScope(val)}
-                        data={selectData}
-                        allowDeselect={false}
-                        leftSection={<IconBuildingStore size={22} color="white" />}
-                    />
-                    <Group gap="xs">
-                        <Button
-                            variant="default"
-                            size="xs"
-                            leftSection={<IconSettings size={14} />}
-                            onClick={() => setModalOpen(true)}
-                            styles={{ root: { backgroundColor: '#1F2937', color: '#9CA3AF', borderColor: '#374151' } }}
-                        >
-                            고정지출 설정
-                        </Button>
-                        <Text size="sm" c="dimmed" fw={600}>
-                            {dayjs(month).format('YYYY년 M월')}
-                        </Text>
-                    </Group>
-                </Group>
+            {/* Tab Navigation */}
+            <TabNavigation tabs={TAB_GROUPS.schedule} />
 
-                <Group grow>
+            {/* Header with Selector & Monthly Summary */}
+            <Stack gap="sm">
+                {/* 상단 헤더: 매장 선택 + 설정 */}
+                <Stack gap="xs">
+                    <Group justify="space-between" align="center" wrap="nowrap">
+                        <Select
+                            variant="unstyled"
+                            size="md"
+                            styles={{
+                                root: { flex: 1, minWidth: 0 },
+                                input: { fontSize: 18, fontWeight: 800, color: 'white', padding: '0 8px' },
+                                dropdown: { color: 'black' }
+                            }}
+                            value={viewScope}
+                            onChange={(val) => val && setViewScope(val)}
+                            data={selectData}
+                            allowDeselect={false}
+                            leftSection={<IconBuildingStore size={20} color="white" />}
+                        />
+                        <ActionIcon
+                            variant="subtle"
+                            color="gray"
+                            size="lg"
+                            radius="md"
+                            onClick={() => setModalOpen(true)}
+                        >
+                            <IconSettings size={20} />
+                        </ActionIcon>
+                    </Group>
+                    <Text size="sm" c="dimmed" fw={600} ta="center">
+                        {dayjs(month).format('YYYY년 M월')}
+                    </Text>
+                </Stack>
+
+                {/* 뷰 모드 토글 */}
+                <Group grow gap="xs">
                     <Box
                         onClick={() => setViewMode('sales')}
                         style={{
-                            padding: '8px',
-                            borderRadius: '8px',
+                            padding: '10px 8px',
+                            borderRadius: '10px',
                             backgroundColor: viewMode === 'sales' ? '#374151' : 'transparent',
                             textAlign: 'center',
                             cursor: 'pointer',
-                            border: viewMode === 'sales' ? '1px solid #60A5FA' : '1px solid transparent',
-                            color: viewMode === 'sales' ? 'white' : 'gray'
+                            border: viewMode === 'sales' ? '1px solid #60A5FA' : '1px solid #374151',
+                            transition: 'all 0.2s ease'
                         }}
                     >
-                        <Text size="sm" fw={700}>📊 매출 기준</Text>
+                        <Text size="sm" fw={700} c={viewMode === 'sales' ? 'white' : 'gray.5'}>
+                            📊 매출 기준
+                        </Text>
                     </Box>
                     <Box
                         onClick={() => setViewMode('cashflow')}
                         style={{
-                            padding: '8px',
-                            borderRadius: '8px',
+                            padding: '10px 8px',
+                            borderRadius: '10px',
                             backgroundColor: viewMode === 'cashflow' ? '#374151' : 'transparent',
                             textAlign: 'center',
                             cursor: 'pointer',
-                            border: viewMode === 'cashflow' ? '1px solid #34D399' : '1px solid transparent',
-                            color: viewMode === 'cashflow' ? '#34D399' : 'gray'
+                            border: viewMode === 'cashflow' ? '1px solid #34D399' : '1px solid #374151',
+                            transition: 'all 0.2s ease'
                         }}
                     >
-                        <Text size="sm" fw={700}>💸 실입금 기준</Text>
+                        <Text size="sm" fw={700} c={viewMode === 'cashflow' ? 'teal.4' : 'gray.5'}>
+                            💸 실입금 기준
+                        </Text>
                     </Box>
                 </Group>
 
-                {/* Monthly Summary Card */}
-                <Paper p="md" radius="lg" bg="#111C44" style={{ border: '1px solid #2C2E33' }}>
-                    <Group grow>
-                        <Stack gap={0} align="center">
+                {/* Monthly Summary Card - 반응형 개선 */}
+                <Paper p={{ base: 'sm', sm: 'md' }} radius="lg" bg="#111C44" style={{ border: '1px solid #2C2E33' }}>
+                    <Group grow gap={{ base: 'xs', sm: 'md' }} wrap="nowrap">
+                        <Stack gap={2} align="center">
                             <Text size="xs" c="gray.5">총 매출</Text>
-                            <Text fw={700} c="white" size="md">{monthlyTotalSales.toLocaleString()}</Text>
-                        </Stack>
-                        <Divider orientation="vertical" />
-                        <Stack gap={0} align="center">
-                            <Text size="xs" c="gray.5">순수익</Text>
-                            <Text fw={800} c={monthlyProfit >= 0 ? 'teal.4' : 'red.4'} size="lg">
-                                {monthlyProfit.toLocaleString()}
+                            <Text fw={700} c="white" size={{ base: 'sm', sm: 'md' }} style={{ fontVariantNumeric: 'tabular-nums' }}>
+                                {(monthlyTotalSales / 10000).toFixed(0)}만
                             </Text>
                         </Stack>
-                        <Divider orientation="vertical" />
-                        <Stack gap={0} align="center">
+                        <Divider orientation="vertical" color="gray.7" />
+                        <Stack gap={2} align="center">
+                            <Text size="xs" c="gray.5">순수익</Text>
+                            <Text fw={800} c={monthlyProfit >= 0 ? 'teal.4' : 'red.4'} size={{ base: 'sm', sm: 'lg' }} style={{ fontVariantNumeric: 'tabular-nums' }}>
+                                {monthlyProfit >= 0 ? '+' : ''}{(monthlyProfit / 10000).toFixed(0)}만
+                            </Text>
+                        </Stack>
+                        <Divider orientation="vertical" color="gray.7" />
+                        <Stack gap={2} align="center">
                             <Text size="xs" c="gray.5">마진율</Text>
-                            <Text fw={700} c="blue.4" size="md">
+                            <Text fw={700} c="blue.4" size={{ base: 'sm', sm: 'md' }}>
                                 {monthlyTotalSales > 0 ? Math.round((monthlyProfit / monthlyTotalSales) * 100) : 0}%
                             </Text>
                         </Stack>
@@ -328,7 +365,7 @@ export default function CalendarPage() {
             </Stack>
 
             {/* Calendar Card */}
-            <Paper radius="xl" p="xs" shadow="sm" bg="#1F2937" style={{ border: '1px solid #374151' }}>
+            <Paper radius="xl" p={{ base: 'xs', sm: 'md' }} shadow="sm" bg="#1F2937" style={{ border: '1px solid #374151' }}>
                 <Calendar
                     key={fixedCosts.map(c => c.id).join('-')} // Force re-render when costs change
                     static
@@ -338,15 +375,53 @@ export default function CalendarPage() {
                     getDayProps={getDayProps}
                     renderDay={renderDay}
                     styles={{
-                        calendarHeader: { color: 'white', maxWidth: '100%' },
-                        day: { height: 56, borderRadius: 8, fontSize: 14, color: 'white' },
-                        calendarHeaderLevel: { color: 'white', fontWeight: 700 },
-                        calendarHeaderControl: { color: 'gray' }
+                        calendar: {
+                            width: '100%',
+                            maxWidth: '100%'
+                        },
+                        calendarHeader: {
+                            color: 'white',
+                            maxWidth: '100%',
+                            marginBottom: 8,
+                            padding: '0 4px'
+                        },
+                        calendarHeaderLevel: {
+                            color: 'white',
+                            fontWeight: 700,
+                            fontSize: 18
+                        },
+                        calendarHeaderControl: {
+                            color: '#9CA3AF',
+                            width: 32,
+                            height: 32
+                        },
+                        monthCell: {
+                            padding: 2
+                        },
+                        day: {
+                            height: 'auto',
+                            minHeight: 52,
+                            aspectRatio: '1',
+                            borderRadius: 10,
+                            fontSize: 14,
+                            color: 'white',
+                            padding: 0,
+                            margin: 1
+                        },
+                        weekday: {
+                            color: '#9CA3AF',
+                            fontSize: 12,
+                            fontWeight: 600,
+                            paddingBottom: 8
+                        },
+                        month: {
+                            width: '100%'
+                        }
                     }}
                     locale="ko"
                 />
                 {/* 범례 */}
-                <Group justify="center" gap="md" mt="xs" pb="xs">
+                <Group justify="center" gap={{ base: 'xs', sm: 'md' }} mt="sm" pb="xs" wrap="wrap">
                     <Group gap={4}>
                         <Box w={8} h={8} style={{ borderRadius: '50%', backgroundColor: '#10B981' }} />
                         <Text size="xs" c="dimmed">정산일</Text>

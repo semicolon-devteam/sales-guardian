@@ -1,21 +1,23 @@
 'use client';
 
 import { Title, Text, SimpleGrid, Paper, Stack, Group, ThemeIcon, Badge, Slider, Button, Modal, NumberInput, LoadingOverlay } from '@mantine/core';
-import { IconBulb, IconTrendingUp, IconAlertTriangle, IconChefHat, IconCurrencyWon, IconReceipt, IconFlame, IconRefresh } from '@tabler/icons-react';
+import { IconBulb, IconTrendingUp, IconAlertTriangle, IconChefHat, IconCurrencyWon, IconFlame, IconRefresh, IconSpeakerphone, IconSparkles, IconLoader, IconRobot } from '@tabler/icons-react';
+import { useRouter } from 'next/navigation';
 import { useState, useEffect, useCallback } from 'react';
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, ReferenceLine } from 'recharts';
 import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
-import { fetchStrategyData, saveItemCost } from './strategy-actions';
+import { fetchStrategyData, saveItemCost, estimateMenuCost, CostEstimation } from './strategy-actions';
 import { useStore } from '../_contexts/store-context';
 import { EmptyState } from '../_components/EmptyState';
 import { IconChartBar } from '@tabler/icons-react';
 import { MarginAlertBanner } from './_components/MarginAlertBanner';
-import { IngredientReceiptModal } from './_components/IngredientReceiptModal';
 import { AiStrategyCoach } from './_components/AiStrategyCoach';
+import { TabNavigation, TAB_GROUPS } from '../_components/TabNavigation';
 
 export default function StrategyPage() {
     const { currentStore } = useStore();
+    const router = useRouter();
     const [data, setData] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedItem, setSelectedItem] = useState<any>(null);
@@ -26,9 +28,8 @@ export default function StrategyPage() {
     // Cost Edit Modal
     const [isEditOpen, { open: openEdit, close: closeEdit }] = useDisclosure(false);
     const [editCost, setEditCost] = useState<number | ''>(0);
-
-    // Live Cost Engine Modal
-    const [isReceiptOpen, { open: openReceipt, close: closeReceipt }] = useDisclosure(false);
+    const [aiEstimating, setAiEstimating] = useState(false);
+    const [aiEstimation, setAiEstimation] = useState<CostEstimation | null>(null);
 
     const loadData = useCallback(async () => {
         if (!currentStore) return;
@@ -66,13 +67,37 @@ export default function StrategyPage() {
 
         notifications.show({ title: '저장 완료', message: '원가 정보가 업데이트되었습니다.', color: 'teal' });
         closeEdit();
+        setAiEstimation(null);
         // Optimistic Update or Refetch
         loadData(); // Refetching for simplicity
     };
 
-    const handleReceiptComplete = () => {
-        loadData(); // 원가 업데이트 후 데이터 새로고침
+    const handleAiEstimate = async () => {
+        if (!selectedItem) return;
+        setAiEstimating(true);
+        setAiEstimation(null);
+
+        const result = await estimateMenuCost(selectedItem.name, selectedItem.price);
+
+        if (result.success && result.data) {
+            setAiEstimation(result.data);
+            setEditCost(result.data.estimatedCost);
+            notifications.show({
+                title: 'AI 추정 완료',
+                message: `${selectedItem.name}의 예상 원가: ${result.data.estimatedCost.toLocaleString()}원`,
+                color: 'indigo'
+            });
+        } else {
+            notifications.show({
+                title: '추정 실패',
+                message: result.error || '다시 시도해주세요.',
+                color: 'red'
+            });
+        }
+
+        setAiEstimating(false);
     };
+
 
     // --- Simulation Logic ---
     const itemProfitPerUnit = selectedItem ? selectedItem.price - selectedItem.cost : 0;
@@ -108,6 +133,9 @@ export default function StrategyPage() {
         <Stack gap="xl" pb={100} pos="relative">
             <LoadingOverlay visible={loading} overlayProps={{ radius: "sm", blur: 2 }} />
 
+            {/* Tab Navigation */}
+            <TabNavigation tabs={TAB_GROUPS.strategy} />
+
             {/* Header */}
             <Stack gap={4}>
                 <Group justify="space-between" wrap="wrap">
@@ -115,58 +143,37 @@ export default function StrategyPage() {
                         <Title order={2} c="white">메뉴 전략가 (Profit Architect)</Title>
                         <Badge color="pink" variant="light" size="lg">BETA</Badge>
                     </Group>
-                    <Group>
-                        <Button
-                            variant="light"
-                            color="indigo"
-                            leftSection={<IconReceipt size={16} />}
-                            onClick={openReceipt}
-                        >
-                            🔥 라이브 원가 엔진
-                        </Button>
-                        <Button
-                            variant="subtle"
-                            color="gray"
-                            leftSection={<IconRefresh size={16} />}
-                            onClick={loadData}
-                        >
-                            새로고침
-                        </Button>
-                    </Group>
+                    <Button
+                        variant="subtle"
+                        color="gray"
+                        leftSection={<IconRefresh size={16} />}
+                        onClick={loadData}
+                    >
+                        새로고침
+                    </Button>
                 </Group>
                 <Text c="dimmed">내 메뉴의 수익성을 분석하고(BCG) 최적의 가격을 시뮬레이션하세요.</Text>
             </Stack>
 
-            {/* Live Cost Engine Banner */}
+            {/* Auto Cost Update Banner */}
             <Paper
                 p="md"
                 radius="lg"
                 style={{
-                    background: 'linear-gradient(135deg, rgba(79, 70, 229, 0.15) 0%, rgba(147, 51, 234, 0.15) 100%)',
-                    border: '1px solid rgba(79, 70, 229, 0.3)'
+                    background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(79, 70, 229, 0.15) 100%)',
+                    border: '1px solid rgba(34, 197, 94, 0.3)'
                 }}
             >
-                <Group justify="space-between" wrap="wrap">
-                    <Group>
-                        <ThemeIcon size="lg" radius="xl" variant="gradient" gradient={{ from: 'indigo', to: 'grape' }}>
-                            <IconFlame size={20} />
-                        </ThemeIcon>
-                        <Stack gap={0}>
-                            <Text fw={700} c="white" size="sm">🔄 라이브 원가 엔진 (Live Cost Engine)</Text>
-                            <Text size="xs" c="dimmed">
-                                영수증을 찍으면 AI가 식자재 가격을 감지하여 메뉴 원가를 실시간 업데이트합니다.
-                            </Text>
-                        </Stack>
-                    </Group>
-                    <Button
-                        variant="white"
-                        color="indigo"
-                        size="xs"
-                        leftSection={<IconReceipt size={14} />}
-                        onClick={openReceipt}
-                    >
-                        영수증 스캔
-                    </Button>
+                <Group>
+                    <ThemeIcon size="lg" radius="xl" variant="gradient" gradient={{ from: 'green', to: 'teal' }}>
+                        <IconRobot size={20} />
+                    </ThemeIcon>
+                    <Stack gap={0}>
+                        <Text fw={700} c="white" size="sm">🤖 AI 자동 원가 업데이트</Text>
+                        <Text size="xs" c="dimmed">
+                            지출관리에서 영수증을 등록하면 AI가 식자재를 자동으로 인식하여 원가가 업데이트됩니다.
+                        </Text>
+                    </Stack>
                 </Group>
             </Paper>
 
@@ -362,6 +369,26 @@ export default function StrategyPage() {
                                             </Text>
                                         </Stack>
                                     </Paper>
+
+                                    {/* Marketing Button */}
+                                    <Button
+                                        variant="gradient"
+                                        gradient={{ from: 'grape', to: 'indigo' }}
+                                        size="md"
+                                        radius="md"
+                                        leftSection={<IconSpeakerphone size={18} />}
+                                        onClick={() => {
+                                            const params = new URLSearchParams({
+                                                menu: selectedItem.name,
+                                                price: selectedItem.price.toString(),
+                                                margin: selectedItem.margin.toFixed(0)
+                                            });
+                                            router.push(`/marketing?${params.toString()}`);
+                                        }}
+                                        fullWidth
+                                    >
+                                        이 메뉴 홍보하기
+                                    </Button>
                                 </>
                             )}
                         </Stack>
@@ -374,12 +401,82 @@ export default function StrategyPage() {
             </SimpleGrid>
 
             {/* Cost Edit Modal */}
-            <Modal opened={isEditOpen} onClose={closeEdit} title="원가(Cost) 수정" centered>
+            <Modal
+                opened={isEditOpen}
+                onClose={() => { closeEdit(); setAiEstimation(null); }}
+                title="원가(Cost) 수정"
+                centered
+                size="md"
+                styles={{
+                    header: { backgroundColor: '#1F2937', borderBottom: '1px solid #374151' },
+                    title: { color: 'white', fontWeight: 600 },
+                    content: { backgroundColor: '#1F2937' },
+                    body: { backgroundColor: '#1F2937' },
+                    close: { color: '#9CA3AF', '&:hover': { backgroundColor: '#374151' } }
+                }}
+            >
                 <Stack>
                     <Text size="sm" c="dimmed">
                         &apos;{selectedItem?.name}&apos;의 1인분 원가를 입력해주세요.<br />
                         (재료비 + 포장비 등 변동비 합계)
                     </Text>
+
+                    {/* AI 추정 버튼 */}
+                    <Button
+                        variant="light"
+                        color="indigo"
+                        leftSection={aiEstimating ? <IconLoader size={16} className="animate-spin" /> : <IconSparkles size={16} />}
+                        onClick={handleAiEstimate}
+                        loading={aiEstimating}
+                        fullWidth
+                    >
+                        {aiEstimating ? 'AI가 분석 중...' : '🤖 AI가 원가 추정해줘'}
+                    </Button>
+
+                    {/* AI 추정 결과 */}
+                    {aiEstimation && (
+                        <Paper p="sm" radius="md" bg="rgba(79, 70, 229, 0.1)" style={{ border: '1px solid rgba(79, 70, 229, 0.3)' }}>
+                            <Stack gap="xs">
+                                <Group justify="space-between">
+                                    <Text size="sm" fw={600} c="indigo.3">AI 추정 결과</Text>
+                                    <Badge
+                                        size="xs"
+                                        color={aiEstimation.confidence === 'high' ? 'green' : aiEstimation.confidence === 'medium' ? 'yellow' : 'orange'}
+                                    >
+                                        신뢰도: {aiEstimation.confidence === 'high' ? '높음' : aiEstimation.confidence === 'medium' ? '중간' : '낮음'}
+                                    </Badge>
+                                </Group>
+
+                                <Group justify="space-between">
+                                    <Text size="xs" c="dimmed">예상 원가</Text>
+                                    <Text size="md" fw={700} c="white">{aiEstimation.estimatedCost.toLocaleString()}원</Text>
+                                </Group>
+
+                                <Group justify="space-between">
+                                    <Text size="xs" c="dimmed">업종 평균 마진율</Text>
+                                    <Text size="sm" c="teal">{aiEstimation.industryAvgMargin}%</Text>
+                                </Group>
+
+                                {/* 재료 breakdown */}
+                                {aiEstimation.ingredients.length > 0 && (
+                                    <Stack gap={4}>
+                                        <Text size="xs" c="dimmed" mt="xs">예상 재료 구성:</Text>
+                                        {aiEstimation.ingredients.map((ing, idx) => (
+                                            <Group key={idx} justify="space-between" px="xs">
+                                                <Text size="xs" c="gray.4">{ing.name} ({ing.amount})</Text>
+                                                <Text size="xs" c="gray.5">{ing.estimatedPrice.toLocaleString()}원</Text>
+                                            </Group>
+                                        ))}
+                                    </Stack>
+                                )}
+
+                                <Text size="xs" c="dimmed" mt="xs" style={{ lineHeight: 1.4 }}>
+                                    💡 {aiEstimation.reasoning}
+                                </Text>
+                            </Stack>
+                        </Paper>
+                    )}
+
                     <NumberInput
                         label="원가 (원)"
                         placeholder="예: 3500"
@@ -388,21 +485,24 @@ export default function StrategyPage() {
                         thousandSeparator
                         leftSection={<IconCurrencyWon size={16} />}
                         min={0}
+                        styles={{
+                            label: { color: '#D1D5DB' },
+                            input: { backgroundColor: '#111827', borderColor: '#374151', color: 'white' }
+                        }}
                     />
+
+                    {aiEstimation && (
+                        <Text size="xs" c="dimmed">
+                            ※ AI 추정값은 참고용입니다. 실제 원가와 다를 수 있으니 확인 후 저장하세요.
+                        </Text>
+                    )}
+
                     <Group justify="flex-end" mt="md">
-                        <Button variant="default" onClick={closeEdit}>취소</Button>
+                        <Button variant="default" onClick={() => { closeEdit(); setAiEstimation(null); }} styles={{ root: { borderColor: '#374151', color: '#D1D5DB' } }}>취소</Button>
                         <Button color="teal" onClick={handleSaveCost}>저장</Button>
                     </Group>
                 </Stack>
             </Modal>
-
-            {/* Live Cost Engine Modal */}
-            <IngredientReceiptModal
-                opened={isReceiptOpen}
-                onClose={closeReceipt}
-                storeId={currentStore?.id}
-                onComplete={handleReceiptComplete}
-            />
         </Stack>
     );
 }

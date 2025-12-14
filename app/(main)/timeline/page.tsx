@@ -6,6 +6,7 @@ import { TimelineFeed } from '../_components/TimelineFeed';
 import { TimelineHeader } from '../_components/TimelineHeader';
 import { useStore } from '../_contexts/store-context';
 import { useState } from 'react';
+import { TabNavigation, TAB_GROUPS } from '../_components/TabNavigation';
 
 export default function TimelinePage() {
     const { currentStore, myStores, setCurrentStore, isLoading, createDefaultStore } = useStore();
@@ -43,6 +44,9 @@ export default function TimelinePage() {
     return (
         <Container size="sm" p={0}>
             <Stack gap="lg">
+                {/* Tab Navigation */}
+                <TabNavigation tabs={TAB_GROUPS.schedule} />
+
                 {/* Header / Store Switcher */}
                 <TimelineHeader />
 

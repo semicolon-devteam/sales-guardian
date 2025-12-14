@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { addExpense, getExpenses } from './_repositories/expenses-repository';
 import { createClient } from '@/app/_shared/utils/supabase/server';
+import { analyzeAndProcessReceiptImage } from '../strategy/live-cost-actions';
 
 export async function analyzeReceipt(formData: FormData) {
     // Validating image presence
@@ -76,6 +77,7 @@ export async function uploadReceiptAndSave(formData: FormData) {
     const date = formData.get('date') as string;
     const category = formData.get('category') as string;
     const file = formData.get('image') as File;
+    const storeId = formData.get('store_id') as string;
 
     if (!amount || !merchant_name || !date) {
         return { error: '필수 정보가 누락되었습니다.' };
@@ -115,11 +117,49 @@ export async function uploadReceiptAndSave(formData: FormData) {
 
         revalidatePath('/expenses');
         revalidatePath('/dashboard');
+
+        // 영수증 이미지가 있으면 백그라운드에서 AI 분석 트리거 (B안)
+        // 메인 응답을 블로킹하지 않도록 비동기로 실행
+        if (image_url) {
+            // 비동기 실행 - 응답을 기다리지 않음
+            triggerReceiptAnalysis(image_url, storeId).catch(err => {
+                console.error('Background receipt analysis failed:', err);
+            });
+        }
+
         return { success: true };
 
     } catch (e: any) {
         console.error(e);
         return { error: `지출 저장 실패: ${e.message}` };
+    }
+}
+
+/**
+ * 백그라운드에서 영수증 분석 실행
+ * 식자재 영수증이면 자동으로 ingredients 테이블 업데이트
+ */
+async function triggerReceiptAnalysis(imageUrl: string, storeId?: string) {
+    try {
+        const result = await analyzeAndProcessReceiptImage(imageUrl, storeId);
+
+        if (result.success && result.data?.isIngredientReceipt) {
+            console.log(
+                `[Receipt Auto-Analysis] 식자재 영수증 감지 - ` +
+                `업데이트: ${result.data.processedCount}개, ` +
+                `신규 등록: ${result.data.createdCount}개`
+            );
+
+            // 식자재가 업데이트되었으면 strategy 페이지도 revalidate
+            revalidatePath('/strategy');
+        } else {
+            console.log(
+                `[Receipt Auto-Analysis] 식자재 영수증 아님 - ` +
+                `유형: ${result.data?.receiptType || 'unknown'}`
+            );
+        }
+    } catch (error) {
+        console.error('[Receipt Auto-Analysis] Error:', error);
     }
 }
 

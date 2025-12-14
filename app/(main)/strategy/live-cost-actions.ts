@@ -726,6 +726,195 @@ Response format (JSON only, no markdown):
     }
 }
 
+// =============================================================================
+// 영수증 자동 분석 (지출관리에서 호출) - B안 구현
+// =============================================================================
+
+export interface ReceiptAnalysisResult {
+    isIngredientReceipt: boolean;
+    confidence: number;
+    receiptType: 'ingredient' | 'utility' | 'equipment' | 'other';
+    items?: ParsedIngredientItem[];
+    merchant?: string;
+    total?: number;
+    processedCount?: number;
+    createdCount?: number;
+}
+
+/**
+ * 영수증 이미지를 분석하여 식자재 영수증인지 판별하고
+ * 식자재면 자동으로 ingredients 테이블 업데이트
+ */
+export async function analyzeAndProcessReceiptImage(
+    imageUrl: string,
+    storeId?: string
+): Promise<{ success: boolean; data?: ReceiptAnalysisResult; error?: string }> {
+    try {
+        // 1. 이미지 URL에서 base64로 변환
+        const imageResponse = await fetch(imageUrl);
+        if (!imageResponse.ok) {
+            return { success: false, error: '이미지를 불러올 수 없습니다.' };
+        }
+
+        const imageBuffer = await imageResponse.arrayBuffer();
+        const imageBase64 = Buffer.from(imageBuffer).toString('base64');
+
+        // 2. AI로 영수증 분석 및 식자재 판별
+        const Anthropic = (await import('@anthropic-ai/sdk')).default;
+        const client = new Anthropic();
+
+        const message = await client.messages.create({
+            model: 'claude-3-5-sonnet-20241022',
+            max_tokens: 1024,
+            messages: [
+                {
+                    role: 'user',
+                    content: [
+                        {
+                            type: 'image',
+                            source: {
+                                type: 'base64',
+                                media_type: 'image/jpeg',
+                                data: imageBase64
+                            }
+                        },
+                        {
+                            type: 'text',
+                            text: `이 영수증을 분석해주세요.
+
+1. 먼저 이 영수증이 어떤 유형인지 판별해주세요:
+   - ingredient: 식자재/식료품 구매 (마트, 시장, 식자재 도매 등)
+   - utility: 공과금 (전기, 가스, 수도, 통신 등)
+   - equipment: 장비/비품 구매
+   - other: 기타
+
+2. 식자재 영수증(ingredient)인 경우에만, 각 품목을 추출해주세요.
+
+응답 형식 (JSON만):
+{
+  "receiptType": "ingredient|utility|equipment|other",
+  "isIngredientReceipt": true/false,
+  "confidence": 0.0-1.0,
+  "merchant": "상호명",
+  "total": 총합계(숫자),
+  "items": [
+    {
+      "name": "품목명",
+      "price": 금액(숫자),
+      "quantity": 수량(숫자, 기본 1),
+      "unit": "단위"
+    }
+  ]
+}
+
+주의:
+- 식자재가 아닌 영수증이면 items는 빈 배열
+- 가격은 숫자만 (원 단위)
+- 배달비, 부가세 등은 items에서 제외`
+                        }
+                    ]
+                }
+            ]
+        });
+
+        // 3. 응답 파싱
+        const responseText = message.content[0].type === 'text' ? message.content[0].text : '';
+        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+
+        if (!jsonMatch) {
+            return {
+                success: true,
+                data: {
+                    isIngredientReceipt: false,
+                    confidence: 0,
+                    receiptType: 'other'
+                }
+            };
+        }
+
+        const parsed = JSON.parse(jsonMatch[0]);
+
+        // 4. 식자재 영수증이 아니면 여기서 종료
+        if (!parsed.isIngredientReceipt || parsed.receiptType !== 'ingredient') {
+            return {
+                success: true,
+                data: {
+                    isIngredientReceipt: false,
+                    confidence: parsed.confidence || 0.5,
+                    receiptType: parsed.receiptType || 'other',
+                    merchant: parsed.merchant
+                }
+            };
+        }
+
+        // 5. 식자재 영수증이면 스마트 매칭 및 자동 처리
+        const items: ParsedIngredientItem[] = parsed.items || [];
+
+        if (items.length === 0) {
+            return {
+                success: true,
+                data: {
+                    isIngredientReceipt: true,
+                    confidence: parsed.confidence || 0.8,
+                    receiptType: 'ingredient',
+                    merchant: parsed.merchant,
+                    total: parsed.total,
+                    items: [],
+                    processedCount: 0,
+                    createdCount: 0
+                }
+            };
+        }
+
+        // 스마트 매칭
+        const matchResult = await smartMatchIngredients(items, storeId);
+        if (!matchResult.success || !matchResult.data) {
+            return {
+                success: true,
+                data: {
+                    isIngredientReceipt: true,
+                    confidence: parsed.confidence || 0.8,
+                    receiptType: 'ingredient',
+                    merchant: parsed.merchant,
+                    total: parsed.total,
+                    items,
+                    processedCount: 0,
+                    createdCount: 0
+                }
+            };
+        }
+
+        // 자동 처리 (업데이트 + 신규 등록)
+        const processResult = await processSmartMatchedItems(matchResult.data, storeId);
+
+        return {
+            success: true,
+            data: {
+                isIngredientReceipt: true,
+                confidence: parsed.confidence || 0.9,
+                receiptType: 'ingredient',
+                merchant: parsed.merchant,
+                total: parsed.total,
+                items,
+                processedCount: processResult.data?.updated.length || 0,
+                createdCount: processResult.data?.created.length || 0
+            }
+        };
+
+    } catch (error: any) {
+        console.error('analyzeAndProcessReceiptImage error:', error);
+        // 에러가 발생해도 지출 저장은 성공해야 하므로 실패를 반환하지 않음
+        return {
+            success: true,
+            data: {
+                isIngredientReceipt: false,
+                confidence: 0,
+                receiptType: 'other'
+            }
+        };
+    }
+}
+
 /**
  * 규칙 기반 메뉴 전략 조언 생성 (API 없이도 동작)
  */
