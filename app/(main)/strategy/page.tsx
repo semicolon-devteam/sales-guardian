@@ -267,7 +267,7 @@ export default function StrategyPage() {
             <Modal opened={isEditOpen} onClose={closeEdit} title="원가(Cost) 수정" centered>
                 <Stack>
                     <Text size="sm" c="dimmed">
-                        '{selectedItem?.name}'의 1인분 원가를 입력해주세요.<br />
+                        &apos;{selectedItem?.name}&apos;의 1인분 원가를 입력해주세요.<br />
                         (재료비 + 포장비 등 변동비 합계)
                     </Text>
                     <NumberInput

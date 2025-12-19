@@ -86,7 +86,7 @@ export function InstallPrompt() {
                                     <Group gap="xs">
                                         <Text size="sm">1. 브라우저 하단 <IconShare size={14} style={{ display: 'inline' }} /> 공유 버튼 누르기</Text>
                                     </Group>
-                                    <Text size="sm">2. <strong>'홈 화면에 추가'</strong> 선택하기</Text>
+                                    <Text size="sm">2. <strong>&apos;홈 화면에 추가&apos;</strong> 선택하기</Text>
                                 </Paper>
                             ) : (
                                 <Button fullWidth color="teal" onClick={handleInstallClick}>

@@ -49,11 +49,11 @@ export function ReviewWidget() {
                 <Stack gap="xs" style={{ flex: 1 }}>
                     <Group gap="xs">
                         <IconThumbUp size={14} color="#a78bfa" />
-                        <Text size="xs" c="gray.3" lineClamp={1}>"국물이 진짜 진해요"</Text>
+                        <Text size="xs" c="gray.3" lineClamp={1}>&quot;국물이 진짜 진해요&quot;</Text>
                     </Group>
                     <Group gap="xs">
                         <IconThumbDown size={14} color="#f87171" />
-                        <Text size="xs" c="gray.3" lineClamp={1}>"배달이 좀 식어서 왔.."</Text>
+                        <Text size="xs" c="gray.3" lineClamp={1}>&quot;배달이 좀 식어서 왔..&quot;</Text>
                     </Group>
                     <Badge variant="outline" color="gray" size="xs" fullWidth>
                         AI 요약 보기

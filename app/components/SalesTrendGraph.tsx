@@ -2,7 +2,7 @@
 
 import { Paper, Text, Group, Box } from '@mantine/core';
 import { IconArrowUpRight } from '@tabler/icons-react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Defs, LinearGradient, Stop } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface SalesTrendGraphProps {
     data: {
@@ -77,8 +77,8 @@ export function SalesTrendGraph({ data }: SalesTrendGraphProps) {
                 </Box>
             </Group>
 
-            <Box h={250} w="100%" style={{ marginLeft: -20 }}>
-                <ResponsiveContainer width="100%" height="100%">
+            <Box h={250} w="100%" style={{ marginLeft: -20, minHeight: 250 }}>
+                <ResponsiveContainer width="100%" height={250} minHeight={250}>
                     <AreaChart data={chartData}>
                         <defs>
                             <linearGradient id="colorAmount" x1="0" y1="0" x2="0" y2="1">

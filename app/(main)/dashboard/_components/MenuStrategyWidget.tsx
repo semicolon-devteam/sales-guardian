@@ -29,7 +29,7 @@ export function MenuStrategyWidget() {
 
             <Stack gap="xs" style={{ flex: 1 }}>
                 <Text size="lg" fw={800} c="white">
-                    '김치찌개' 가격 인상 추천
+                    &apos;김치찌개&apos; 가격 인상 추천
                 </Text>
                 <Text size="xs" c="dimmed" lh={1.4}>
                     주문량은 상위 10%인데, 마진율이 5% 미만입니다. <br />

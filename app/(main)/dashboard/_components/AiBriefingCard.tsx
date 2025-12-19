@@ -120,7 +120,7 @@ export function AiBriefingCard({ username, metrics, health }: AiBriefingProps) {
                     >
                         <Group justify="space-between">
                             <Text size="sm" fw={500}>
-                                💡 팁: 최근 '점심 세트 A' 주문이 15% 늘었어요.
+                                💡 팁: 최근 &apos;점심 세트 A&apos; 주문이 15% 늘었어요.
                             </Text>
                             <Button
                                 variant="subtle"

@@ -39,3 +39,13 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# SEMO system (AI orchestration framework)
+semo-system/
+semo-system.backup/
+.claude/
+
+# Custom documentation (local notes)
+custom-docs/
+*.md
+!README.md

@@ -29,13 +29,20 @@ export function AiCommandConsole({ initialAlerts = [], contextData = {} }: AiCom
         { id: 'init', role: 'ai', text: '사장님, 좋은 아침입니다. ☀️\n오늘 매장 상태를 분석할 준비가 되었습니다.' }
     ]);
 
+    const [alertsProcessed, setAlertsProcessed] = useState(false);
+
     useEffect(() => {
-        if (initialAlerts.length > 0) {
+        if (initialAlerts.length > 0 && !alertsProcessed) {
             const alertText = initialAlerts.map(a => `🔔 [알림] ${a.message}`).join('\n');
-            const newMsg: AiMessage = { id: 'alert', role: 'ai', text: `확인해야 할 사항이 있습니다:\n${alertText}` };
+            const newMsg: AiMessage = {
+                id: `alert-${Date.now()}`,
+                role: 'ai',
+                text: `확인해야 할 사항이 있습니다:\n${alertText}`
+            };
             setMessages(prev => [...prev, newMsg]);
+            setAlertsProcessed(true);
         }
-    }, [initialAlerts]);
+    }, [initialAlerts, alertsProcessed]);
 
     const [typingText, setTypingText] = useState('');
     const [isTyping, setIsTyping] = useState(false);
