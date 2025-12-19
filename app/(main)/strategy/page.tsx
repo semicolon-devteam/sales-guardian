@@ -218,7 +218,7 @@ export default function StrategyPage() {
                             />
                         ) : (
                             <div style={{ flex: 1, width: '100%', minHeight: 350 }}>
-                                <ResponsiveContainer width="100%" height="100%">
+                                <ResponsiveContainer width="100%" height="100%" minHeight={350}>
                                     <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 0 }}>
                                         <CartesianGrid strokeDasharray="3 3" stroke="#373A40" />
                                         <XAxis type="number" dataKey="quantity" name="판매량" stroke="#868E96" unit="개" />
