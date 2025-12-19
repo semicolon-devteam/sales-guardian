@@ -163,3 +163,6 @@ export async function getRecentItems() {
 
     return Array.from(map.entries()).map(([name, price]) => ({ name, price }));
 }
+
+// Alias for backward compatibility
+export { getSalesByDateRange as getSalesRange };

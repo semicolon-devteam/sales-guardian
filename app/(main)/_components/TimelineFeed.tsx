@@ -46,13 +46,16 @@ export function TimelineFeed({ keyTrigger }: { keyTrigger: number }) {
             try {
                 const { parseAndSuggestExpense } = await import('../timeline/actions');
                 const result = await parseAndSuggestExpense(post.image_url);
-                if (result.success && result.data) {
-                    initial = {
-                        date: new Date(result.data.date),
-                        merchant_name: result.data.merchant_name,
-                        amount: result.data.amount,
-                        category: result.data.category
-                    };
+                if (result.success && 'data' in result && result.data && typeof result.data === 'object') {
+                    const data = result.data as any;
+                    if ('date' in data && 'merchant_name' in data && 'amount' in data && 'category' in data) {
+                        initial = {
+                            date: new Date(data.date),
+                            merchant_name: data.merchant_name,
+                            amount: data.amount,
+                            category: data.category
+                        };
+                    }
                 }
             } catch (e) {
                 console.error("OCR Error", e);

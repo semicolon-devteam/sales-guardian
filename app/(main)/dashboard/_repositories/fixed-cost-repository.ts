@@ -9,12 +9,18 @@ export type FixedCost = {
     created_at: string;
 };
 
-export async function getFixedCosts() {
+export async function getFixedCosts(storeId?: string) {
     const supabase = await createClient();
-    const { data, error } = await supabase
+    let query = supabase
         .from('fixed_costs')
         .select('*')
         .order('created_at', { ascending: true });
+
+    if (storeId) {
+        query = query.eq('store_id', storeId);
+    }
+
+    const { data, error } = await query;
 
     if (error) throw error;
     return data as FixedCost[];

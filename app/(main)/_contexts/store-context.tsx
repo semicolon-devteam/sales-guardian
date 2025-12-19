@@ -18,12 +18,18 @@ type StoreMember = {
     stores: Store; // Join result
 };
 
+type User = {
+    id: string;
+    email?: string;
+};
+
 type StoreContextType = {
     currentStore: Store | null;
     myStores: Store[];
     memberships: StoreMember[];
     role: 'owner' | 'manager' | 'staff' | null;
     isLoading: boolean;
+    user: User | null;
     setCurrentStore: (store: Store) => void;
     refreshStores: () => Promise<void>;
     createDefaultStore: () => Promise<string | null>;
@@ -37,6 +43,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const [myStores, setMyStores] = useState<Store[]>([]);
     const [memberships, setMemberships] = useState<StoreMember[]>([]);
     const [role, setRole] = useState<'owner' | 'manager' | 'staff' | null>(null);
+    const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const supabase = createClient();
     const router = useRouter();
@@ -49,6 +56,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
                 setIsLoading(false);
                 return;
             }
+
+            setUser(user);
 
             // 1. Get my memberships with store details
             const { data: members, error: memberError } = await supabase
@@ -205,6 +214,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         memberships,
         role,
         isLoading,
+        user,
         setCurrentStore: handleSetCurrentStore,
         refreshStores: fetchStores,
         createDefaultStore,

@@ -288,15 +288,15 @@ export default function CalendarPage() {
                 <Calendar
                     key={fixedCosts.map(c => c.id).join('-')} // Force re-render when costs change
                     static
-                    value={date}
-                    onChange={setDate}
-                    onDateChange={handleMonthChange}
-                    getDayProps={getDayProps}
-                    renderDay={renderDay}
+                    date={date || undefined}
+                    onDateChange={(val) => setDate(val ? new Date(val) : null)}
+                    onNextMonth={(val) => handleMonthChange(new Date(val))}
+                    onPreviousMonth={(val) => handleMonthChange(new Date(val))}
+                    getDayProps={(dateVal) => getDayProps(new Date(dateVal))}
+                    renderDay={(dateVal) => renderDay(new Date(dateVal))}
                     styles={{
                         calendarHeader: { color: 'white', maxWidth: '100%' },
                         day: { height: 56, borderRadius: 8, fontSize: 14, color: 'white' },
-                        cell: { padding: 2 },
                         calendarHeaderLevel: { color: 'white', fontWeight: 700 },
                         calendarHeaderControl: { color: 'gray' }
                     }}

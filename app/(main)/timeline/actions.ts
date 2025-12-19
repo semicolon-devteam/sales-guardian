@@ -4,10 +4,12 @@ import { createClient } from "@/app/_shared/utils/supabase/server";
 import { revalidatePath } from "next/cache";
 
 export async function parseAndSuggestExpense(imageUrl: string) {
-    const { parseExpenseFromOCR } = await import('../sales/_utils/ocr-parser');
+    // TODO: Implement parseExpenseFromOCR in ocr-parser.ts
+    // const { parseExpenseFromOCR } = await import('../sales/_utils/ocr-parser');
     try {
-        const data = await parseExpenseFromOCR(imageUrl);
-        return { success: true, data };
+        // const data = await parseExpenseFromOCR(imageUrl);
+        // Temporary mock response until OCR parser is implemented
+        return { success: false, error: 'OCR parser not implemented yet' };
     } catch (e: any) {
         console.error("OCR Failed", e);
         return { success: false, error: e.message };

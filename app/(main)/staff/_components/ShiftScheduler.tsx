@@ -97,8 +97,8 @@ export function ShiftScheduler() {
                 <Paper p="md" radius="lg" bg="#1F2937" style={{ border: '1px solid #374151', maxWidth: 350 }}>
                     <Calendar
                         static
-                        value={date}
-                        onDateChange={setDate}
+                        date={date || undefined}
+                        onDateChange={(val) => setDate(val ? new Date(val) : null)}
                         size="md"
                         styles={{
                             calendarHeader: { color: 'white' },

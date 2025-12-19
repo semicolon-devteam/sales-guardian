@@ -11,12 +11,18 @@ export type Expense = {
     created_at: string;
 };
 
-export async function getExpenses() {
+export async function getExpenses(storeId?: string) {
     const supabase = await createClient();
-    const { data, error } = await supabase
+    let query = supabase
         .from('expenses')
         .select('*')
         .order('date', { ascending: false });
+
+    if (storeId && storeId !== 'ALL') {
+        query = query.eq('store_id', storeId);
+    }
+
+    const { data, error } = await query;
 
     if (error) throw error;
     return data as Expense[];
