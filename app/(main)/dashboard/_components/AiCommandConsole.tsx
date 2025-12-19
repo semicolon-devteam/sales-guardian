@@ -51,10 +51,14 @@ export function AiCommandConsole({ initialAlerts = [], contextData = {}, storeId
     useEffect(() => {
         if (initialAlerts.length > 0) {
             const alertText = initialAlerts.map(a => `🔔 [알림] ${a.message}`).join('\n');
-            const newMsg: AiMessage = { id: 'alert', role: 'ai', text: `확인해야 할 사항이 있습니다:\n${alertText}` };
-            setMessages(prev => [...prev, newMsg]);
+            const newMsg: AiMessage = { id: `alert-${Date.now()}`, role: 'ai', text: `확인해야 할 사항이 있습니다:\n${alertText}` };
+            setMessages(prev => {
+                // 이미 alert 메시지가 있으면 추가하지 않음
+                if (prev.some(m => m.id.startsWith('alert-'))) return prev;
+                return [...prev, newMsg];
+            });
         }
-    }, [initialAlerts]);
+    }, []);
 
     const [typingText, setTypingText] = useState('');
     const [isLoading, setIsLoading] = useState(false);
